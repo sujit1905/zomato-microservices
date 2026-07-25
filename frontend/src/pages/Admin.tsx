@@ -1,286 +1,271 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { adminService } from "../main";
 import AdminRestaurantCard from "../components/AdminRestaurantCard";
 import RiderAdmin from "../components/RiderAdmin";
 import { motion, AnimatePresence } from "framer-motion";
 import EmptyState from "../components/ui/EmptyState";
-import {
-  BiStats, BiCheckShield, BiUserPin, BiPurchaseTag,
-  BiSearch, BiFilterAlt, BiTrendingUp, BiDollarCircle,
-  BiGroup, BiRestaurant
-} from "react-icons/bi";
 
 type AdminTab = "analytics" | "verification" | "users" | "orders";
+
+// ─── Inline SVG Icons (no emoji, no external icon lib needed here) ─────────────
+const IcoBar = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
+const IcoShield = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+const IcoUsers = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+const IcoOrders = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>;
+const IcoSearch = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+const IcoFilter = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
+const IcoStore = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+const IcoBike = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M8 17.5l.7-3.5L12 11l3-3h3M12 11l.7 3.5"/></svg>;
+const IcoRevenue = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+const IcoPeople = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0891B2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>;
+const IcoRest = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E23744" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>;
+const IcoTrend = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>;
+
+const SPIN_CSS = `@keyframes spin { to { transform: rotate(360deg); } }`;
+const Spinner = () => (
+  <>
+    <div style={{ width: "32px", height: "32px", borderRadius: "50%", border: "3px solid var(--color-primary-light)", borderTopColor: "var(--color-primary)", animation: "spin 0.8s linear infinite" }} />
+    <style>{SPIN_CSS}</style>
+  </>
+);
+
+const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  delivered: { bg: "#DCFCE7", color: "#15803D" },
+  placed:    { bg: "#FEF9C3", color: "#854D0E" },
+  preparing: { bg: "#FFEDD5", color: "#C2410C" },
+  cancelled: { bg: "#FEE2E2", color: "#991B1B" },
+  picked:    { bg: "#E0F2FE", color: "#0369A1" },
+};
 
 const Admin = () => {
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [riders, setRiders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Admin Tabs
   const [tab, setTab] = useState<AdminTab>("analytics");
-  // Sub-tab inside verification
   const [verifyTab, setVerifyTab] = useState<"restaurant" | "rider">("restaurant");
 
-  // Filters, search, pagination
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  // Stats
+  const [stats, setStats] = useState({ restaurants: 0, riders: 0, users: 0, orders: 0, revenue: 0 });
 
-  // Mock Users List
-  const mockUsers = [
-    { _id: "u1", name: "Sujit Mecwan", email: "sujit@gmail.com", role: "seller", status: "active", createdAt: "2026-07-01" },
-    { _id: "u2", name: "Rahul Sharma", email: "rahul@yahoo.com", role: "customer", status: "active", createdAt: "2026-07-12" },
-    { _id: "u3", name: "Amit Patel", email: "amit@gmail.com", role: "rider", status: "verified", createdAt: "2026-07-15" },
-    { _id: "u4", name: "Pooja Roy", email: "pooja@outlook.com", role: "customer", status: "active", createdAt: "2026-07-20" },
-    { _id: "u5", name: "Vikram Singh", email: "vikram@gmail.com", role: "rider", status: "pending", createdAt: "2026-07-25" },
-    { _id: "u6", name: "Neha Gupta", email: "neha@gmail.com", role: "customer", status: "inactive", createdAt: "2026-07-25" }
-  ];
+  // Users
+  const [users, setUsers] = useState<any[]>([]);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersPage, setUsersPage] = useState(1);
+  const [userSearch, setUserSearch] = useState("");
+  const [userRole, setUserRole] = useState("all");
+  const [usersLoading, setUsersLoading] = useState(false);
 
-  // Mock Orders List
-  const mockOrders = [
-    { _id: "o1", customerName: "Rahul Sharma", restaurantName: "Pizza Hut", items: "Margherita Pizza x2, Pepsi x1", amount: 540, status: "delivered", createdAt: "2026-07-25 14:32" },
-    { _id: "o2", customerName: "Pooja Roy", restaurantName: "Burger King", items: "Whopper Burger x1, Fries x1", amount: 280, status: "preparing", createdAt: "2026-07-25 22:15" },
-    { _id: "o3", customerName: "Sujit Mecwan", restaurantName: "Biryani Zone", items: "Chicken Biryani x1", amount: 320, status: "placed", createdAt: "2026-07-25 22:45" },
-    { _id: "o4", customerName: "Rahul Sharma", restaurantName: "Subway", items: "Italian BMT Sub x1", amount: 240, status: "cancelled", createdAt: "2026-07-24 19:10" },
-    { _id: "o5", customerName: "Pooja Roy", restaurantName: "KFC", items: "Hot & Crispy Chicken x4", amount: 480, status: "delivered", createdAt: "2026-07-24 13:05" }
-  ];
+  // Orders
+  const [orders, setOrders] = useState<any[]>([]);
+  const [ordersTotal, setOrdersTotal] = useState(0);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderStatus, setOrderStatus] = useState("all");
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
-  const fetchData = async () => {
+  const PER_PAGE = 10;
+  const authHeaders = { Authorization: `Bearer ${localStorage.getItem("token")}` };
+
+  const fetchData = useCallback(async () => {
     try {
-      const resPendingRest = await axios.get(
-        `${adminService}/api/v1/admin/restaurant/pending`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
-
-      const resPendingRider = await axios.get(
-        `${adminService}/api/v1/admin/rider/pending`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
-
-      setRestaurants(resPendingRest.data.restaurants || []);
-      setRiders(resPendingRider.data.riders || []);
-    } catch (error) {
-      console.log("Failed to load admin verification lists", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
+      const [r1, r2, r3] = await Promise.all([
+        axios.get(`${adminService}/api/v1/admin/restaurant/pending`, { headers: authHeaders }),
+        axios.get(`${adminService}/api/v1/admin/rider/pending`, { headers: authHeaders }),
+        axios.get(`${adminService}/api/v1/admin/stats`, { headers: authHeaders }),
+      ]);
+      setRestaurants(r1.data.restaurants || []);
+      setRiders(r2.data.riders || []);
+      setStats(r3.data || {});
+    } catch (e) { console.error("Admin fetch error", e); }
+    finally { setLoading(false); }
   }, []);
 
-  const totalEarnings = 18450;
-  const growthRate = 12.4;
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  if (loading) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", flexDirection: "column", gap: "16px" }}>
-        <div style={{ width: "40px", height: "40px", borderRadius: "50%", border: "3px solid var(--color-primary-light)", borderTopColor: "var(--color-primary)", animation: "spin 0.8s linear infinite" }} />
-        <p style={{ color: "var(--color-text-muted)", fontWeight: 500 }}>Loading admin panel...</p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
+  const fetchUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const { data } = await axios.get(`${adminService}/api/v1/admin/users`, {
+        headers: authHeaders,
+        params: { page: usersPage, limit: PER_PAGE, search: userSearch, role: userRole },
+      });
+      setUsers(data.users || []);
+      setUsersTotal(data.total || 0);
+    } catch (e) { console.error(e); }
+    finally { setUsersLoading(false); }
+  }, [usersPage, userSearch, userRole]);
 
-  // Filter users
-  const filteredUsers = mockUsers.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === "all" || u.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  useEffect(() => { if (tab === "users") fetchUsers(); }, [tab, fetchUsers]);
 
-  // Filter orders
-  const filteredOrders = mockOrders.filter(o => {
-    const matchesSearch = o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) || o.restaurantName.toLowerCase().includes(searchQuery.toLowerCase()) || o.items.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = orderStatusFilter === "all" || o.status === orderStatusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const fetchOrders = useCallback(async () => {
+    setOrdersLoading(true);
+    try {
+      const { data } = await axios.get(`${adminService}/api/v1/admin/orders`, {
+        headers: authHeaders,
+        params: { page: ordersPage, limit: PER_PAGE, search: orderSearch, status: orderStatus },
+      });
+      setOrders(data.orders || []);
+      setOrdersTotal(data.total || 0);
+    } catch (e) { console.error(e); }
+    finally { setOrdersLoading(false); }
+  }, [ordersPage, orderSearch, orderStatus]);
 
-  // Paginated elements
-  const indexOfLastUser = currentPage * itemsPerPage;
-  const indexOfFirstUser = indexOfLastUser - itemsPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  useEffect(() => { if (tab === "orders") fetchOrders(); }, [tab, fetchOrders]);
 
-  const indexOfLastOrder = currentPage * itemsPerPage;
-  const indexOfFirstOrder = indexOfLastOrder - itemsPerPage;
-  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const fmtNum = (v: number) =>
+    v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` :
+    v >= 1000   ? `₹${(v / 1000).toFixed(1)}K`   : `₹${v}`;
 
-  const totalUserPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const totalOrderPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const totalUserPages = Math.ceil(usersTotal / PER_PAGE);
+  const totalOrderPages = Math.ceil(ordersTotal / PER_PAGE);
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", flexDirection: "column", gap: "16px" }}>
+      <Spinner />
+      <p style={{ color: "var(--color-text-muted)", fontWeight: 500 }}>Loading admin panel...</p>
+    </div>
+  );
+
+  const TABS = [
+    { key: "analytics",    label: "Analytics",                                icon: <IcoBar /> },
+    { key: "verification", label: `Verifications (${restaurants.length + riders.length})`, icon: <IcoShield /> },
+    { key: "users",        label: `Users (${stats.users || 0})`,               icon: <IcoUsers /> },
+    { key: "orders",       label: `Orders (${stats.orders || 0})`,             icon: <IcoOrders /> },
+  ];
 
   return (
     <div style={{ background: "var(--color-bg-secondary)", minHeight: "100vh", padding: "40px 0 80px" }}>
       <div className="container">
-        
+
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px", marginBottom: "32px" }}>
-          <div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 800, color: "var(--color-dark)", marginBottom: "4px" }}>
-              Admin Center
-            </h1>
-            <p style={{ color: "var(--color-text-muted)", margin: 0 }}>Oversee users, verify applications, and track global store metrics</p>
-          </div>
+        <div style={{ marginBottom: "28px" }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 800, color: "var(--color-dark)", marginBottom: "4px" }}>Admin Center</h1>
+          <p style={{ color: "var(--color-text-muted)", margin: 0 }}>Real-time platform insights, verifications, and management</p>
         </div>
 
-        {/* Tab Toggle Navigation */}
-        <div style={{
-          display: "flex", background: "#fff", padding: "6px", borderRadius: "12px", border: "1px solid var(--color-border-light)",
-          marginBottom: "32px", width: "fit-content", boxShadow: "var(--shadow-sm)"
-        }}>
-          {[
-            { key: "analytics", label: "Analytics Overview", icon: <BiStats size={18} /> },
-            { key: "verification", label: `Verifications (${restaurants.length + riders.length})`, icon: <BiCheckShield size={18} /> },
-            { key: "users", label: "Users Registry", icon: <BiUserPin size={18} /> },
-            { key: "orders", label: "Global Orders", icon: <BiPurchaseTag size={18} /> },
-          ].map(t => (
-            <button
-              key={t.key}
-              onClick={() => { setTab(t.key as AdminTab); setCurrentPage(1); setSearchQuery(""); }}
-              style={{
-                display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "8px",
-                fontWeight: 600, fontSize: "0.875rem", cursor: "pointer", border: "none",
-                background: tab === t.key ? "var(--color-primary-light)" : "none",
-                color: tab === t.key ? "var(--color-primary)" : "var(--color-text-muted)",
-                transition: "all var(--transition-fast)"
-              }}
-            >
+        {/* Tabs */}
+        <div style={{ display: "flex", background: "#fff", padding: "5px", borderRadius: "12px", border: "1px solid var(--color-border-light)", marginBottom: "28px", width: "fit-content", boxShadow: "var(--shadow-sm)", flexWrap: "wrap", gap: "3px" }}>
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key as AdminTab)}
+              style={{ display: "flex", alignItems: "center", gap: "7px", padding: "9px 17px", borderRadius: "8px", fontWeight: 600, fontSize: "0.875rem", cursor: "pointer", border: "none", background: tab === t.key ? "var(--color-primary-light)" : "transparent", color: tab === t.key ? "var(--color-primary)" : "var(--color-text-muted)", transition: "all var(--transition-fast)" }}>
               {t.icon} {t.label}
             </button>
           ))}
         </div>
 
-        {/* Main Content Area */}
         <AnimatePresence mode="wait">
-          <motion.div
-            key={tab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            {/* 1. ANALYTICS TAB */}
+          <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+
+            {/* ── ANALYTICS ── */}
             {tab === "analytics" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-                
-                {/* Stats Cards */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "20px" }} className="admin-stats-grid">
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "16px" }}>
                   {[
-                    { label: "Total Revenue", value: `₹${totalEarnings}`, percentage: `+${growthRate}% MoM`, icon: <BiDollarCircle size={24} color="#7C3AED" />, bg: "#F5F3FF" },
-                    { label: "Active Customers", value: "1,248", percentage: "+8.2% MoM", icon: <BiGroup size={24} color="#0891B2" />, bg: "#ECFEFF" },
-                    { label: "Registered Restaurants", value: "94", percentage: "+4 new today", icon: <BiRestaurant size={24} color="var(--color-primary)" />, bg: "var(--color-primary-light)" },
-                    { label: "System Orders", value: "3,892", percentage: "+18% growth", icon: <BiTrendingUp size={24} color="#16A34A" />, bg: "#F0FDF4" },
-                  ].map((s, idx) => (
-                    <div key={idx} style={{ background: "#fff", padding: "24px", borderRadius: "14px", border: "1px solid var(--color-border-light)", boxShadow: "var(--shadow-card)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    { label: "Total Revenue", value: fmtNum(stats.revenue || 0), sub: "Non-cancelled orders", icon: <IcoRevenue />, bg: "#F5F3FF" },
+                    { label: "Registered Users", value: (stats.users || 0).toLocaleString(), sub: "All platform users", icon: <IcoPeople />, bg: "#ECFEFF" },
+                    { label: "Restaurants", value: (stats.restaurants || 0).toLocaleString(), sub: `${restaurants.length} pending`, icon: <IcoRest />, bg: "var(--color-primary-light)" },
+                    { label: "Total Orders", value: (stats.orders || 0).toLocaleString(), sub: "Platform-wide", icon: <IcoTrend />, bg: "#F0FDF4" },
+                  ].map((s, i) => (
+                    <div key={i} style={{ background: "#fff", padding: "20px", borderRadius: "14px", border: "1px solid var(--color-border-light)", boxShadow: "var(--shadow-card)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div>
-                        <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", margin: "0 0 6px" }}>{s.label}</p>
-                        <h3 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-dark)", margin: "0 0 4px" }}>{s.value}</h3>
-                        <span style={{ fontSize: "0.75rem", color: s.percentage.includes("+") ? "#16A34A" : "#EF4444", fontWeight: 700 }}>{s.percentage}</span>
+                        <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", margin: "0 0 5px" }}>{s.label}</p>
+                        <h3 style={{ fontSize: "1.625rem", fontWeight: 800, color: "var(--color-dark)", margin: "0 0 3px", fontFamily: "var(--font-display)" }}>{s.value}</h3>
+                        <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)" }}>{s.sub}</span>
                       </div>
-                      <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: s.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>{s.icon}</div>
+                      <div style={{ width: "46px", height: "46px", borderRadius: "12px", background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{s.icon}</div>
                     </div>
                   ))}
                 </div>
 
-                {/* Mock Chart Area */}
-                <div style={{ background: "#fff", padding: "28px", borderRadius: "14px", border: "1px solid var(--color-border-light)", boxShadow: "var(--shadow-card)" }}>
-                  <h3 style={{ fontWeight: 800, fontSize: "1.125rem", color: "var(--color-dark)", marginBottom: "20px" }}>Revenue Growth Chart</h3>
-                  
-                  {/* Styled CSS mockup chart bar display */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", height: "200px", padding: "10px 0 0", borderBottom: "2px solid var(--color-border)" }}>
-                    {[12, 18, 15, 25, 30, 24, 42, 38, 48, 55, 62, 75].map((val, idx) => (
-                      <div key={idx} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-                        <div style={{
-                          height: `${val}%`, width: "24px", background: "var(--color-primary)",
-                          borderRadius: "4px 4px 0 0", opacity: idx === 11 ? 1 : 0.8,
-                          transition: "height 0.5s ease-out"
-                        }} />
-                        <span style={{ fontSize: "0.6875rem", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
-                          {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][idx]}
-                        </span>
+                {/* Quick action cards for pending items */}
+                {(restaurants.length > 0 || riders.length > 0) && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "14px" }}>
+                    {restaurants.length > 0 && (
+                      <button onClick={() => { setTab("verification"); setVerifyTab("restaurant"); }}
+                        style={{ background: "#fff", borderRadius: "12px", padding: "18px", border: "1.5px solid #FCA5A5", boxShadow: "var(--shadow-sm)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: "14px", transition: "all var(--transition-fast)" }}
+                        onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-2px)")}
+                        onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}>
+                        <div style={{ width: "42px", height: "42px", borderRadius: "11px", background: "#FFF1F2", display: "flex", alignItems: "center", justifyContent: "center", color: "#E23744", flexShrink: 0 }}><IcoStore /></div>
+                        <div>
+                          <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Pending Restaurants</p>
+                          <h3 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: "#E23744" }}>{restaurants.length}</h3>
+                        </div>
+                      </button>
+                    )}
+                    {riders.length > 0 && (
+                      <button onClick={() => { setTab("verification"); setVerifyTab("rider"); }}
+                        style={{ background: "#fff", borderRadius: "12px", padding: "18px", border: "1.5px solid #C4B5FD", boxShadow: "var(--shadow-sm)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: "14px", transition: "all var(--transition-fast)" }}
+                        onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-2px)")}
+                        onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}>
+                        <div style={{ width: "42px", height: "42px", borderRadius: "11px", background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", color: "#7C3AED", flexShrink: 0 }}><IcoBike /></div>
+                        <div>
+                          <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Pending Riders</p>
+                          <h3 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: "#7C3AED" }}>{riders.length}</h3>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Revenue Chart */}
+                <div style={{ background: "#fff", padding: "24px", borderRadius: "14px", border: "1px solid var(--color-border-light)", boxShadow: "var(--shadow-card)" }}>
+                  <h3 style={{ fontWeight: 800, fontSize: "1.0625rem", color: "var(--color-dark)", marginBottom: "18px" }}>Monthly Activity</h3>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", height: "160px", borderBottom: "2px solid var(--color-border)" }}>
+                    {[12,18,15,25,30,24,42,38,48,55,62,75].map((val, idx) => (
+                      <div key={idx} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                        <div style={{ height: `${val}%`, width: "20px", background: idx === 11 ? "var(--color-primary)" : "rgba(226,55,68,0.2)", borderRadius: "4px 4px 0 0" }} />
+                        <span style={{ fontSize: "0.575rem", color: "var(--color-text-muted)", textTransform: "uppercase" }}>{"JFMAMJJASOND"[idx]}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-
               </div>
             )}
 
-            {/* 2. VERIFICATIONS TAB */}
+            {/* ── VERIFICATIONS ── */}
             {tab === "verification" && (
               <div>
-                {/* Sub tabs */}
-                <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
-                  <button
-                    onClick={() => setVerifyTab("restaurant")}
-                    className={`btn ${verifyTab === "restaurant" ? "btn-primary" : "btn-secondary"} btn-sm`}
-                  >
-                    🏪 Restaurants ({restaurants.length})
-                  </button>
-                  <button
-                    onClick={() => setVerifyTab("rider")}
-                    className={`btn ${verifyTab === "rider" ? "btn-primary" : "btn-secondary"} btn-sm`}
-                  >
-                    🏍️ Riders ({riders.length})
-                  </button>
+                <div style={{ display: "flex", gap: "10px", marginBottom: "22px", flexWrap: "wrap" }}>
+                  {[
+                    { key: "restaurant", label: `Restaurants (${restaurants.length})`, icon: <IcoStore /> },
+                    { key: "rider",      label: `Riders (${riders.length})`,           icon: <IcoBike /> },
+                  ].map(t => (
+                    <button key={t.key} onClick={() => setVerifyTab(t.key as any)}
+                      style={{ display: "flex", alignItems: "center", gap: "7px", padding: "9px 18px", borderRadius: "var(--radius-lg)", fontWeight: 600, fontSize: "0.875rem", cursor: "pointer", border: "1.5px solid", borderColor: verifyTab === t.key ? "var(--color-primary)" : "var(--color-border)", background: verifyTab === t.key ? "var(--color-primary-light)" : "#fff", color: verifyTab === t.key ? "var(--color-primary)" : "var(--color-text-muted)", transition: "all var(--transition-fast)" }}>
+                      {t.icon} {t.label}
+                    </button>
+                  ))}
                 </div>
 
                 {verifyTab === "restaurant" ? (
-                  restaurants.length === 0 ? (
-                    <EmptyState icon="🏪" title="No Pending Restaurants" description="All merchant registration requests have been reviewed." />
-                  ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
-                      {restaurants.map((r) => (
-                        <AdminRestaurantCard key={r._id} restaurant={r} onVerify={fetchData} />
-                      ))}
-                    </div>
-                  )
+                  restaurants.length === 0
+                    ? <EmptyState icon="🏪" title="No Pending Restaurants" description="All merchant registration requests have been reviewed." />
+                    : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
+                        {restaurants.map(r => <AdminRestaurantCard key={r._id} restaurant={r} onVerify={fetchData} />)}
+                      </div>
                 ) : (
-                  riders.length === 0 ? (
-                    <EmptyState icon="🏍️" title="No Pending Riders" description="All delivery partner registration requests have been reviewed." />
-                  ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
-                      {riders.map((r) => (
-                        <RiderAdmin key={r._id} rider={r} onVerify={fetchData} />
-                      ))}
-                    </div>
-                  )
+                  riders.length === 0
+                    ? <EmptyState icon="🏍️" title="No Pending Riders" description="All delivery partner requests have been reviewed." />
+                    : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
+                        {riders.map(r => <RiderAdmin key={r._id} rider={r} onVerify={fetchData} />)}
+                      </div>
                 )}
               </div>
             )}
 
-            {/* 3. USERS REGISTRY TAB */}
+            {/* ── USERS ── */}
             {tab === "users" && (
-              <div style={{ background: "#fff", padding: "24px", borderRadius: "14px", border: "1px solid var(--color-border-light)", boxShadow: "var(--shadow-card)" }}>
-                
-                {/* Filters Row */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "20px" }}>
-                  <div style={{ position: "relative", width: "100%", maxWidth: "300px" }}>
-                    <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)", display: "flex" }}>
-                      <BiSearch size={18} />
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Search users name or email..."
-                      value={searchQuery}
-                      onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                      className="input-field"
-                      style={{ paddingLeft: "38px", paddingTop: "8px", paddingBottom: "8px" }}
-                    />
+              <div style={{ background: "#fff", padding: "22px", borderRadius: "14px", border: "1px solid var(--color-border-light)", boxShadow: "var(--shadow-card)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "14px", marginBottom: "18px" }}>
+                  <div style={{ position: "relative", flex: 1, minWidth: "200px", maxWidth: "300px" }}>
+                    <span style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)", display: "flex" }}><IcoSearch /></span>
+                    <input type="text" placeholder="Search name or email..." value={userSearch} onChange={e => { setUserSearch(e.target.value); setUsersPage(1); }} className="input-field" style={{ paddingLeft: "36px", paddingTop: "8px", paddingBottom: "8px" }} />
                   </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <BiFilterAlt size={16} color="var(--color-text-muted)" />
-                    <select
-                      value={roleFilter}
-                      onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-                      className="input-field"
-                      style={{ width: "auto", padding: "6px 12px", height: "auto" }}
-                    >
+                  <div style={{ display: "flex", alignItems: "center", gap: "7px", color: "var(--color-text-muted)" }}>
+                    <IcoFilter />
+                    <select value={userRole} onChange={e => { setUserRole(e.target.value); setUsersPage(1); }} className="input-field" style={{ width: "auto", padding: "7px 12px", height: "auto" }}>
                       <option value="all">All Roles</option>
                       <option value="customer">Customer</option>
                       <option value="seller">Seller</option>
@@ -289,154 +274,143 @@ const Admin = () => {
                   </div>
                 </div>
 
-                {/* Table */}
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "2px solid var(--color-border-light)", color: "var(--color-text-muted)", fontSize: "0.8125rem", fontWeight: 700 }}>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>USER NAME</th>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>EMAIL</th>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>ROLE</th>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>STATUS</th>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>REGISTRATION</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentUsers.map((u, idx) => (
-                        <tr key={idx} style={{ borderBottom: "1px solid var(--color-border-light)", fontSize: "0.875rem" }}>
-                          <td style={{ padding: "16px", fontWeight: 700, color: "var(--color-dark)" }}>{u.name}</td>
-                          <td style={{ padding: "16px" }}>{u.email}</td>
-                          <td style={{ padding: "16px" }}>
-                            <span style={{
-                              padding: "2px 8px", borderRadius: "4px", fontSize: "0.75rem", fontWeight: 700,
-                              background: u.role === "seller" ? "#F5F3FF" : (u.role === "rider" ? "#ECFEFF" : "#EFF6FF"),
-                              color: u.role === "seller" ? "#7C3AED" : (u.role === "rider" ? "#0891B2" : "#2563EB"),
-                            }}>{u.role.toUpperCase()}</span>
-                          </td>
-                          <td style={{ padding: "16px" }}>
-                            <span style={{
-                              padding: "2px 8px", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700,
-                              background: u.status === "active" || u.status === "verified" ? "var(--color-success-bg)" : "var(--color-error-bg)",
-                              color: u.status === "active" || u.status === "verified" ? "#16A34A" : "var(--color-error)",
-                            }}>{u.status.toUpperCase()}</span>
-                          </td>
-                          <td style={{ padding: "16px", color: "var(--color-text-muted)" }}>{u.createdAt}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                {totalUserPages > 1 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px" }}>
-                    <span style={{ fontSize: "0.8125rem", color: "var(--color-text-light)" }}>Showing {indexOfFirstUser + 1} to {Math.min(indexOfLastUser, filteredUsers.length)} of {filteredUsers.length}</span>
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      <button disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} className="btn btn-secondary btn-sm">Prev</button>
-                      <button disabled={currentPage === totalUserPages} onClick={() => setCurrentPage(c => c + 1)} className="btn btn-secondary btn-sm">Next</button>
+                {usersLoading ? (
+                  <div style={{ display: "flex", justifyContent: "center", padding: "36px" }}><Spinner /></div>
+                ) : (
+                  <>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ borderBottom: "2px solid var(--color-border-light)", color: "var(--color-text-muted)", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                            {["User", "Email", "Role", "Registered"].map(h => (
+                              <th key={h} style={{ padding: "11px 14px", textAlign: "left" }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {users.map((u, i) => (
+                            <tr key={u._id || i} style={{ borderBottom: "1px solid var(--color-border-light)", fontSize: "0.875rem" }}
+                              onMouseEnter={e => (e.currentTarget.style.background = "#FAFAFA")}
+                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                              <td style={{ padding: "13px 14px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                  <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-primary-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                    <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: "var(--color-primary)" }}>{(u.name || "?")[0].toUpperCase()}</span>
+                                  </div>
+                                  <span style={{ fontWeight: 600, color: "var(--color-dark)" }}>{u.name || "—"}</span>
+                                </div>
+                              </td>
+                              <td style={{ padding: "13px 14px", color: "var(--color-text-muted)" }}>{u.email}</td>
+                              <td style={{ padding: "13px 14px" }}>
+                                <span style={{ padding: "2px 8px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 700, background: u.role === "seller" ? "#F5F3FF" : u.role === "rider" ? "#ECFEFF" : "#EFF6FF", color: u.role === "seller" ? "#7C3AED" : u.role === "rider" ? "#0891B2" : "#2563EB" }}>
+                                  {(u.role || "customer").toUpperCase()}
+                                </span>
+                              </td>
+                              <td style={{ padding: "13px 14px", color: "var(--color-text-muted)", fontSize: "0.8rem" }}>
+                                {u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-IN") : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {users.length === 0 && <p style={{ textAlign: "center", padding: "28px", color: "var(--color-text-muted)" }}>No users found.</p>}
                     </div>
-                  </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "18px", flexWrap: "wrap", gap: "10px" }}>
+                      <span style={{ fontSize: "0.8rem", color: "var(--color-text-light)" }}>{usersTotal} total users</span>
+                      {totalUserPages > 1 && (
+                        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                          <button disabled={usersPage === 1} onClick={() => setUsersPage(p => p - 1)} className="btn btn-secondary btn-sm">Prev</button>
+                          <span style={{ padding: "5px 12px", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)" }}>{usersPage}/{totalUserPages}</span>
+                          <button disabled={usersPage === totalUserPages} onClick={() => setUsersPage(p => p + 1)} className="btn btn-secondary btn-sm">Next</button>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
-
               </div>
             )}
 
-            {/* 4. GLOBAL ORDERS TAB */}
+            {/* ── ORDERS ── */}
             {tab === "orders" && (
-              <div style={{ background: "#fff", padding: "24px", borderRadius: "14px", border: "1px solid var(--color-border-light)", boxShadow: "var(--shadow-card)" }}>
-                
-                {/* Filters Row */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "20px" }}>
-                  <div style={{ position: "relative", width: "100%", maxWidth: "300px" }}>
-                    <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)", display: "flex" }}>
-                      <BiSearch size={18} />
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Search restaurant or customer..."
-                      value={searchQuery}
-                      onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                      className="input-field"
-                      style={{ paddingLeft: "38px", paddingTop: "8px", paddingBottom: "8px" }}
-                    />
+              <div style={{ background: "#fff", padding: "22px", borderRadius: "14px", border: "1px solid var(--color-border-light)", boxShadow: "var(--shadow-card)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "14px", marginBottom: "18px" }}>
+                  <div style={{ position: "relative", flex: 1, minWidth: "200px", maxWidth: "300px" }}>
+                    <span style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)", display: "flex" }}><IcoSearch /></span>
+                    <input type="text" placeholder="Search orders..." value={orderSearch} onChange={e => { setOrderSearch(e.target.value); setOrdersPage(1); }} className="input-field" style={{ paddingLeft: "36px", paddingTop: "8px", paddingBottom: "8px" }} />
                   </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <BiFilterAlt size={16} color="var(--color-text-muted)" />
-                    <select
-                      value={orderStatusFilter}
-                      onChange={(e) => { setOrderStatusFilter(e.target.value); setCurrentPage(1); }}
-                      className="input-field"
-                      style={{ width: "auto", padding: "6px 12px", height: "auto" }}
-                    >
-                      <option value="all">All Orders</option>
+                  <div style={{ display: "flex", alignItems: "center", gap: "7px", color: "var(--color-text-muted)" }}>
+                    <IcoFilter />
+                    <select value={orderStatus} onChange={e => { setOrderStatus(e.target.value); setOrdersPage(1); }} className="input-field" style={{ width: "auto", padding: "7px 12px", height: "auto" }}>
+                      <option value="all">All Status</option>
                       <option value="placed">Placed</option>
                       <option value="preparing">Preparing</option>
+                      <option value="picked">Picked Up</option>
                       <option value="delivered">Delivered</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
                   </div>
                 </div>
 
-                {/* Table */}
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "2px solid var(--color-border-light)", color: "var(--color-text-muted)", fontSize: "0.8125rem", fontWeight: 700 }}>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>ORDER ID</th>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>CUSTOMER</th>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>RESTAURANT</th>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>ITEMS</th>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>AMOUNT</th>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>STATUS</th>
-                        <th style={{ padding: "12px 16px", textAlign: "left" }}>TIMESTAMP</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentOrders.map((o, idx) => (
-                        <tr key={idx} style={{ borderBottom: "1px solid var(--color-border-light)", fontSize: "0.875rem" }}>
-                          <td style={{ padding: "16px", fontWeight: 700, fontFamily: "monospace" }}>#{o._id.toUpperCase()}</td>
-                          <td style={{ padding: "16px", fontWeight: 600 }}>{o.customerName}</td>
-                          <td style={{ padding: "16px" }}>{o.restaurantName}</td>
-                          <td style={{ padding: "16px", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.items}</td>
-                          <td style={{ padding: "16px", fontWeight: 700, color: "var(--color-primary)" }}>₹{o.amount}</td>
-                          <td style={{ padding: "16px" }}>
-                            <span style={{
-                              padding: "2px 8px", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700,
-                              background: o.status === "delivered" ? "#E0F2FE" : (o.status === "cancelled" ? "#FEE2E2" : "#FFF7ED"),
-                              color: o.status === "delivered" ? "#0369A1" : (o.status === "cancelled" ? "#991B1B" : "#C2410C"),
-                            }}>{o.status.toUpperCase()}</span>
-                          </td>
-                          <td style={{ padding: "16px", color: "var(--color-text-muted)" }}>{o.createdAt}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                {totalOrderPages > 1 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px" }}>
-                    <span style={{ fontSize: "0.8125rem", color: "var(--color-text-light)" }}>Showing {indexOfFirstOrder + 1} to {Math.min(indexOfLastOrder, filteredOrders.length)} of {filteredOrders.length}</span>
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      <button disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} className="btn btn-secondary btn-sm">Prev</button>
-                      <button disabled={currentPage === totalOrderPages} onClick={() => setCurrentPage(c => c + 1)} className="btn btn-secondary btn-sm">Next</button>
+                {ordersLoading ? (
+                  <div style={{ display: "flex", justifyContent: "center", padding: "36px" }}><Spinner /></div>
+                ) : (
+                  <>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ borderBottom: "2px solid var(--color-border-light)", color: "var(--color-text-muted)", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                            {["Order ID", "Restaurant", "Items", "Amount", "Status", "Date"].map(h => (
+                              <th key={h} style={{ padding: "11px 14px", textAlign: "left" }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orders.map((o, i) => {
+                            const sc = STATUS_COLORS[o.status] || { bg: "#F3F4F6", color: "#374151" };
+                            const restName = o.restaurantId?.name || o.restaurantName || "—";
+                            const items = Array.isArray(o.items)
+                              ? o.items.map((it: any) => `${it.name || it.itemId} x${it.quantity}`).join(", ")
+                              : "—";
+                            const amount = o.totalAmount ?? o.amount ?? 0;
+                            return (
+                              <tr key={o._id || i} style={{ borderBottom: "1px solid var(--color-border-light)", fontSize: "0.875rem" }}
+                                onMouseEnter={e => (e.currentTarget.style.background = "#FAFAFA")}
+                                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                                <td style={{ padding: "13px 14px", fontWeight: 700, fontFamily: "monospace", fontSize: "0.75rem", color: "var(--color-text-muted)" }}>#{String(o._id).slice(-8).toUpperCase()}</td>
+                                <td style={{ padding: "13px 14px", fontWeight: 600, color: "var(--color-dark)" }}>{restName}</td>
+                                <td style={{ padding: "13px 14px", maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--color-text-muted)" }}>{items}</td>
+                                <td style={{ padding: "13px 14px", fontWeight: 700, color: "var(--color-primary)" }}>₹{amount}</td>
+                                <td style={{ padding: "13px 14px" }}>
+                                  <span style={{ padding: "3px 8px", borderRadius: "9999px", fontSize: "0.68rem", fontWeight: 700, background: sc.bg, color: sc.color }}>{(o.status || "—").toUpperCase()}</span>
+                                </td>
+                                <td style={{ padding: "13px 14px", color: "var(--color-text-muted)", fontSize: "0.8rem" }}>
+                                  {o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-IN") : "—"}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      {orders.length === 0 && <p style={{ textAlign: "center", padding: "28px", color: "var(--color-text-muted)" }}>No orders found.</p>}
                     </div>
-                  </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "18px", flexWrap: "wrap", gap: "10px" }}>
+                      <span style={{ fontSize: "0.8rem", color: "var(--color-text-light)" }}>{ordersTotal} total orders</span>
+                      {totalOrderPages > 1 && (
+                        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                          <button disabled={ordersPage === 1} onClick={() => setOrdersPage(p => p - 1)} className="btn btn-secondary btn-sm">Prev</button>
+                          <span style={{ padding: "5px 12px", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)" }}>{ordersPage}/{totalOrderPages}</span>
+                          <button disabled={ordersPage === totalOrderPages} onClick={() => setOrdersPage(p => p + 1)} className="btn btn-secondary btn-sm">Next</button>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
-
               </div>
             )}
 
           </motion.div>
         </AnimatePresence>
-
       </div>
-      <style>{`
-        @media (max-width: 768px) {
-          .admin-stats-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
     </div>
   );
 };

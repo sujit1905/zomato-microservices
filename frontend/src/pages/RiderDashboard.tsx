@@ -208,9 +208,14 @@ const RiderDashboard = () => {
   if (user?.role !== "rider") {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "12px" }}>
-        <span style={{ fontSize: "3rem" }}>🏍️</span>
+        <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "var(--color-primary-light)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/>
+            <path d="M8 17.5l.7-3.5L12 11l3-3h3M12 11l.7 3.5"/>
+          </svg>
+        </div>
         <h3 style={{ fontWeight: 700, color: "var(--color-dark)" }}>Access Restricted</h3>
-        <p style={{ color: "var(--color-text-muted)" }}>You are not registered as a rider. Please switch role to Rider.</p>
+        <p style={{ color: "var(--color-text-muted)", textAlign: "center", maxWidth: "280px" }}>You are not registered as a rider. Please switch role to Rider.</p>
       </div>
     );
   }
@@ -230,7 +235,12 @@ const RiderDashboard = () => {
       <div style={{ minHeight: "100vh", background: "var(--color-bg-secondary)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px 80px" }}>
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} style={{ width: "100%", maxWidth: "540px" }}>
           <div style={{ textAlign: "center", marginBottom: "32px" }}>
-            <div style={{ fontSize: "3rem", marginBottom: "12px" }}>🏍️</div>
+            <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "var(--color-primary-light)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/>
+                <path d="M8 17.5l.7-3.5L12 11l3-3h3M12 11l.7 3.5"/>
+              </svg>
+            </div>
             <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.875rem", fontWeight: 800, color: "var(--color-dark)", marginBottom: "8px" }}>Join the Rider Team</h1>
             <p style={{ color: "var(--color-text-muted)" }}>Fill in your registration details to start delivering and earning with Zomato</p>
           </div>
@@ -344,7 +354,17 @@ const RiderDashboard = () => {
                 color: profile.isVerified ? "#16A34A" : "#D97706",
                 display: "flex", alignItems: "center", gap: "4px"
               }}>
-                {profile.isVerified ? "✓ Verified Partner" : "⌛ Pending Approval"}
+          {profile.isVerified ? (
+            <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Verified Partner
+            </span>
+          ) : (
+            <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Pending Approval
+            </span>
+          )}
               </span>
 
               <span style={{
@@ -359,8 +379,11 @@ const RiderDashboard = () => {
             </div>
 
             {/* Hotspot Tip */}
-            <div style={{ background: "rgba(245, 158, 11, 0.1)", borderLeft: "4px solid #F59E0B", borderRadius: "0 8px 8px 0", padding: "14px 18px", textAlign: "left", fontSize: "0.875rem", color: "#B45309", lineHeight: 1.5, marginBottom: "28px" }}>
-              <strong>💡 Hotspot Area:</strong> Please stay within 500m of restaurant areas to receive active customer orders efficiently.
+            <div style={{ background: "rgba(245, 158, 11, 0.08)", borderLeft: "3px solid #F59E0B", borderRadius: "0 8px 8px 0", padding: "14px 18px", textAlign: "left", fontSize: "0.875rem", color: "#B45309", lineHeight: 1.5, marginBottom: "28px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: "2px" }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span><strong>Hotspot Area:</strong> Please stay within 500m of restaurant areas to receive active customer orders efficiently.</span>
+              </div>
             </div>
 
             {/* Availability Toggle */}
@@ -381,8 +404,16 @@ const RiderDashboard = () => {
               >
                 {toggling ? (
                   <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 60" strokeLinecap="round" /></svg>
+                ) : profile.isAvailble ? (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    Go Offline
+                  </>
                 ) : (
-                  profile.isAvailble ? "Go Offline 📴" : "Go Online 🛵"
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M8 17.5l.7-3.5L12 11l3-3h3M12 11l.7 3.5"/></svg>
+                    Go Online
+                  </>
                 )}
               </motion.button>
             )}
