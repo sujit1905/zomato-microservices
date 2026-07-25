@@ -12,6 +12,12 @@ interface Address {
   _id: string;
   formattedAddress: string;
   mobile: number;
+  title?: string;
+  houseNumber?: string;
+  apartment?: string;
+  landmark?: string;
+  pinCode?: string;
+  isDefault?: boolean;
 }
 
 const Checkout = () => {
@@ -43,7 +49,8 @@ const Checkout = () => {
 
   useEffect(() => {
     if (!selectedAddressId && addresses.length > 0) {
-      setSelectedAddressId(addresses[0]._id);
+      const defaultAddr = addresses.find(a => a.isDefault) || addresses[0];
+      setSelectedAddressId(defaultAddr._id);
     }
   }, [addresses, selectedAddressId]);
 
@@ -255,9 +262,20 @@ const Checkout = () => {
                         style={{ marginTop: "2px", accentColor: "var(--color-primary)" }}
                       />
                       <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                          <span style={{ fontSize: "0.75rem", background: "var(--color-primary)", color: "#fff", padding: "1px 6px", borderRadius: "4px", fontWeight: 700 }}>
+                            {addr.title || "Home"}
+                          </span>
+                          {addr.isDefault && (
+                            <span style={{ fontSize: "0.75rem", background: "var(--color-success)", color: "#fff", padding: "1px 6px", borderRadius: "4px", fontWeight: 700 }}>
+                              Default
+                            </span>
+                          )}
+                        </div>
                         <p style={{ fontWeight: 600, color: "var(--color-dark)", marginBottom: "3px", fontSize: "0.9375rem" }}>
-                          {addr.formattedAddress}
+                          {addr.houseNumber ? `${addr.houseNumber}, ` : ""}{addr.apartment ? `${addr.apartment}, ` : ""}{addr.formattedAddress}
                         </p>
+                        {addr.landmark && <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", margin: "0 0 3px" }}>Landmark: {addr.landmark}</p>}
                         <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", margin: 0 }}>
                           📱 {addr.mobile}
                         </p>

@@ -3,14 +3,19 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IAddress extends Document {
   userId: string;
   mobile: number;
-
   formattedAddress: string;
-
   location: {
     type: "Point";
     coordinates: [number, number];
   };
-
+  title?: string;
+  houseNumber?: string;
+  apartment?: string;
+  landmark?: string;
+  pinCode?: string;
+  city?: string;
+  area?: string;
+  isDefault?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,7 +34,6 @@ const schema = new Schema<IAddress>(
       type: String,
       required: true,
     },
-
     location: {
       type: {
         type: String,
@@ -40,6 +44,39 @@ const schema = new Schema<IAddress>(
         type: [Number],
         required: true,
       },
+    },
+    title: {
+      type: String,
+      enum: ["Home", "Work", "Other"],
+      default: "Home",
+    },
+    houseNumber: {
+      type: String,
+      default: "",
+    },
+    apartment: {
+      type: String,
+      default: "",
+    },
+    landmark: {
+      type: String,
+      default: "",
+    },
+    pinCode: {
+      type: String,
+      default: "",
+    },
+    city: {
+      type: String,
+      default: "",
+    },
+    area: {
+      type: String,
+      default: "",
+    },
+    isDefault: {
+      type: Boolean,
+      default: false,
     },
   },
   {

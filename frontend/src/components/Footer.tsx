@@ -8,8 +8,8 @@ const Footer = () => {
         {/* Top brand header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px", marginBottom: "40px" }}>
           <div>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 900, color: "var(--color-dark)", letterSpacing: "-0.5px", margin: 0 }}>
-              Zomato
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 850, color: "var(--color-primary)", letterSpacing: "-1.5px", margin: 0, textTransform: "lowercase" }}>
+              zomato
             </h2>
           </div>
           <div style={{ display: "flex", gap: "12px" }}>

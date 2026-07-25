@@ -124,7 +124,7 @@ const Restaurant = () => {
               transition={{ duration: 0.2 }}
               style={{ padding: tab === "menu" ? "0" : "28px 24px" }}
             >
-              {tab === "orders" && <div style={{ padding: "24px" }}><RestaurantOrders restaurantId={restaurant._id} /></div>}
+              {tab === "orders" && <RestaurantOrders restaurantId={restaurant._id} />}
               {tab === "menu" && (
                 <MenuItems items={menuItems} onItemDeleted={() => fetchMenuItems(restaurant._id)} isSeller={true} />
               )}

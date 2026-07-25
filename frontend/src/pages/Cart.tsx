@@ -30,9 +30,38 @@ const Cart = () => {
   }
 
   const restaurant = cart[0].restaurantId as IRestaurant;
+  const [coupon, setCoupon] = useState("");
+  const [discount, setDiscount] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState("");
+
+  const applyCoupon = () => {
+    if (coupon.trim().toUpperCase() === "ZOMATO50") {
+      const disc = Math.round(subTotal * 0.5);
+      setDiscount(disc);
+      setAppliedCoupon("ZOMATO50");
+      toast.success("50% discount applied! 🎉");
+      setCoupon("");
+    } else if (coupon.trim().toUpperCase() === "WELCOME") {
+      const disc = Math.min(100, subTotal);
+      setDiscount(disc);
+      setAppliedCoupon("WELCOME");
+      toast.success("₹100 discount applied! 🎉");
+      setCoupon("");
+    } else {
+      toast.error("Invalid coupon code");
+    }
+  };
+
+  const removeCoupon = () => {
+    setDiscount(0);
+    setAppliedCoupon("");
+    toast.success("Coupon removed");
+  };
+
+  const gst = Math.round(subTotal * 0.05); // 5% GST & Restaurant Charges
   const deliveryFee = subTotal < 250 ? 49 : 0;
   const platformFee = 7;
-  const grandTotal = subTotal + deliveryFee + platformFee;
+  const grandTotal = Math.max(0, subTotal + gst + deliveryFee + platformFee - discount);
   const freeDeliveryAt = 250;
   const progressPct = Math.min((subTotal / freeDeliveryAt) * 100, 100);
 
@@ -132,6 +161,9 @@ const Cart = () => {
                 </h2>
                 <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", margin: 0 }}>
                   {restaurant.autoLocation.formattedAddress}
+                </p>
+                <p style={{ fontSize: "0.8125rem", color: "var(--color-primary)", margin: "4px 0 0", fontWeight: 600 }}>
+                  ⏱️ Estimated Delivery: 30-40 mins
                 </p>
               </div>
               <span style={{
@@ -287,7 +319,42 @@ const Cart = () => {
           </div>
 
           {/* Right: Order Summary (sticky) */}
-          <div style={{ position: "sticky", top: "88px" }}>
+          <div style={{ position: "sticky", top: "88px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            
+            {/* Coupon Section */}
+            <div style={{
+              background: "#fff", borderRadius: "var(--radius-xl)",
+              boxShadow: "var(--shadow-card)", padding: "20px 24px",
+            }}>
+              <h4 style={{ fontWeight: 700, color: "var(--color-dark)", marginBottom: "12px", fontSize: "0.9375rem" }}>
+                🏷️ Apply Coupons
+              </h4>
+              {appliedCoupon ? (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-success-bg)", border: "1px dashed rgba(34,197,94,0.3)", padding: "10px 14px", borderRadius: "8px" }}>
+                  <div>
+                    <span style={{ fontSize: "0.8125rem", color: "#16A34A", fontWeight: 700 }}>{appliedCoupon} Applied</span>
+                    <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: "2px 0 0" }}>Saved ₹{discount}</p>
+                  </div>
+                  <button onClick={removeCoupon} style={{ color: "var(--color-error)", fontSize: "0.8125rem", fontWeight: 600 }}>Remove</button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="text"
+                    placeholder="Enter ZOMATO50 or WELCOME"
+                    value={coupon}
+                    onChange={(e) => setCoupon(e.target.value)}
+                    className="input-field"
+                    style={{ padding: "8px 12px", fontSize: "0.875rem" }}
+                  />
+                  <button onClick={applyCoupon} className="btn btn-primary" style={{ padding: "8px 16px", borderRadius: "8px", fontSize: "0.875rem" }}>
+                    Apply
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Bill Summary */}
             <div style={{
               background: "#fff", borderRadius: "var(--radius-xl)",
               boxShadow: "var(--shadow-card)", overflow: "hidden",
@@ -322,6 +389,7 @@ const Cart = () => {
 
                 {[
                   { label: "Subtotal", value: `₹${subTotal}` },
+                  { label: "GST & Restaurant Charges (5%)", value: `₹${gst}` },
                   {
                     label: "Delivery Fee",
                     value: deliveryFee === 0 ? (
@@ -335,6 +403,13 @@ const Cart = () => {
                     <span style={{ fontSize: "0.9375rem", fontWeight: 500, color: "var(--color-dark)" }}>{value as any}</span>
                   </div>
                 ))}
+
+                {discount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.9375rem", color: "#16A34A", fontWeight: 600 }}>Coupon Discount</span>
+                    <span style={{ fontSize: "0.9375rem", fontWeight: 700, color: "#16A34A" }}>-₹{discount}</span>
+                  </div>
+                )}
 
                 <div style={{ height: "1px", background: "var(--color-border)", margin: "4px 0" }} />
 

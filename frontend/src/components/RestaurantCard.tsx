@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 type props = {
   id: string;
@@ -12,9 +14,21 @@ type props = {
 const RestaurantCard = ({ id, image, name, distance, isOpen }: props) => {
   const navigate = useNavigate();
 
-  // Random rating and delivery time for visual richness
+  // Random rating, delivery time, cuisines, price, and offers for visual richness
   const rating = (4.0 + Math.random() * 0.9).toFixed(1);
   const deliveryTime = `${20 + Math.floor(Math.random() * 20)}-${35 + Math.floor(Math.random() * 15)} mins`;
+  const isVeg = name.toLowerCase().includes("veg") || Math.random() > 0.4;
+  const cuisines = name.toLowerCase().includes("pizza") ? "Italian, Fast Food, Pizza" : (name.toLowerCase().includes("burger") ? "Burgers, Fast Food, Beverages" : "North Indian, Chinese, Continental");
+  const priceForTwo = 150 + Math.floor(Math.random() * 8) * 50;
+  const discountPercent = 10 * (1 + Math.floor(Math.random() * 5));
+
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const toggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFavorite(!isFavorite);
+    toast.success(isFavorite ? "Removed from Favorites" : "Added to Favorites! ❤️");
+  };
 
   return (
     <motion.div
@@ -36,6 +50,7 @@ const RestaurantCard = ({ id, image, name, distance, isOpen }: props) => {
         transition: "box-shadow var(--transition-base)",
         outline: "none",
         opacity: !isOpen ? 0.85 : 1,
+        position: "relative",
       }}
       className="card-hover"
     >
@@ -61,9 +76,10 @@ const RestaurantCard = ({ id, image, name, distance, isOpen }: props) => {
             position: "absolute", inset: 0,
             background: "rgba(0,0,0,0.45)",
             display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1,
           }}>
             <span style={{
-              background: "rgba(0,0,0,0.75)",
+              background: "rgba(0,0,0,0.8)",
               color: "#fff",
               fontWeight: 700,
               fontSize: "0.875rem",
@@ -77,26 +93,58 @@ const RestaurantCard = ({ id, image, name, distance, isOpen }: props) => {
           </div>
         )}
 
-        {/* Open badge */}
+        {/* Favorite Button */}
+        <button
+          onClick={toggleFavorite}
+          style={{
+            position: "absolute", top: "10px", left: "10px", zIndex: 2,
+            background: "rgba(255, 255, 255, 0.9)", border: "none",
+            borderRadius: "50%", width: "32px", height: "32px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", boxShadow: "var(--shadow-sm)",
+            color: isFavorite ? "var(--color-primary)" : "var(--color-text-light)",
+            transition: "all var(--transition-fast)",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.1)")}
+          onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
+        >
+          {isFavorite ? "❤️" : "🤍"}
+        </button>
+
+        {/* Discount Badge */}
         {isOpen && (
-          <div style={{ position: "absolute", top: "10px", right: "10px" }}>
+          <div style={{ position: "absolute", bottom: "10px", right: "10px", zIndex: 2 }}>
             <span style={{
-              background: "rgba(255,255,255,0.95)",
-              color: "#16A34A",
+              background: "var(--color-primary)",
+              color: "#fff",
               fontWeight: 700,
-              fontSize: "0.6875rem",
+              fontSize: "0.75rem",
               padding: "4px 10px",
-              borderRadius: "var(--radius-full)",
-              border: "1px solid rgba(34,197,94,0.3)",
-              letterSpacing: "0.3px",
+              borderRadius: "4px",
+              boxShadow: "var(--shadow-sm)",
             }}>
-              OPEN
+              {discountPercent}% OFF
             </span>
           </div>
         )}
 
+        {/* Veg/Non-veg Dot Indicator */}
+        <div style={{ position: "absolute", top: "10px", right: "10px", zIndex: 2, display: "flex", gap: "6px", alignItems: "center" }}>
+          <span style={{
+            background: "rgba(255,255,255,0.9)",
+            border: `1px solid ${isVeg ? "#16A34A" : "#EF4444"}`,
+            padding: "2px 6px",
+            borderRadius: "4px",
+            fontSize: "0.625rem",
+            fontWeight: 700,
+            color: isVeg ? "#16A34A" : "#EF4444",
+          }}>
+            {isVeg ? "🟢 VEG" : "🔴 NON-VEG"}
+          </span>
+        </div>
+
         {/* Distance badge */}
-        <div style={{ position: "absolute", bottom: "10px", left: "10px" }}>
+        <div style={{ position: "absolute", bottom: "10px", left: "10px", zIndex: 2 }}>
           <span style={{
             background: "rgba(0,0,0,0.7)",
             color: "#fff",
@@ -105,58 +153,61 @@ const RestaurantCard = ({ id, image, name, distance, isOpen }: props) => {
             padding: "4px 10px",
             borderRadius: "var(--radius-full)",
           }}>
-            📍 {distance} km
+            📍 {Number(distance).toFixed(1)} km
           </span>
         </div>
       </div>
 
       {/* Info */}
       <div style={{ padding: "14px 16px 16px" }}>
-        <h3 style={{
-          fontSize: "1rem",
-          fontWeight: 700,
-          color: "var(--color-dark)",
-          margin: "0 0 4px",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}>
-          {name}
-        </h3>
-
-        {/* Rating & Delivery */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+          <h3 style={{
+            fontSize: "1.0625rem",
+            fontWeight: 700,
+            color: "var(--color-dark)",
+            margin: "0 0 4px",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            flex: 1,
+          }}>
+            {name}
+          </h3>
           <span style={{
-            display: "inline-flex", alignItems: "center", gap: "4px",
+            display: "inline-flex", alignItems: "center", gap: "3px",
             background: "#16A34A",
             color: "#fff",
             fontSize: "0.75rem",
             fontWeight: 700,
-            padding: "2px 8px",
+            padding: "2px 6px",
             borderRadius: "4px",
+            flexShrink: 0,
           }}>
             ★ {rating}
           </span>
-          <span style={{ color: "var(--color-border)", fontSize: "12px" }}>•</span>
-          <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", fontWeight: 500 }}>
-            {deliveryTime}
-          </span>
         </div>
 
-        {/* Free delivery chip */}
-        {isOpen && (
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: "4px",
-            background: "var(--color-primary-light)",
-            color: "var(--color-primary)",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            padding: "3px 10px",
-            borderRadius: "var(--radius-full)",
-          }}>
-            🎉 Free delivery above ₹250
-          </div>
-        )}
+        {/* Cuisines */}
+        <p style={{
+          fontSize: "0.8125rem",
+          color: "var(--color-text-muted)",
+          margin: "2px 0 6px",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis"
+        }}>
+          {cuisines}
+        </p>
+
+        {/* Price & Delivery Time */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", borderTop: "1px solid var(--color-border-light)", paddingTop: "8px" }}>
+          <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
+            ₹{priceForTwo} for two
+          </span>
+          <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", fontWeight: 600 }}>
+            ⏱️ {deliveryTime}
+          </span>
+        </div>
       </div>
     </motion.div>
   );

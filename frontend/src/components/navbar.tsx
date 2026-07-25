@@ -61,7 +61,9 @@ const Navbar = () => {
   }, []);
 
   const logout = () => {
-    localStorage.setItem("token", "");
+    localStorage.removeItem("token");
+    localStorage.removeItem("rememberMe");
+    sessionStorage.removeItem("token");
     setUser(null);
     setIsAuth(false);
     setProfileOpen(false);
@@ -90,34 +92,22 @@ const Navbar = () => {
         {/* Main nav row */}
         <div className="container" style={{ display: "flex", alignItems: "center", gap: "16px", padding: "0 var(--space-lg)", height: "64px" }}>
           {/* Logo */}
-          <Link
-            to="/"
-            aria-label="Zomato Home"
-            style={{ display: "flex", alignItems: "center", gap: "6px", textDecoration: "none", flexShrink: 0 }}
-          >
-            <motion.div
-              whileHover={{ rotate: [0, -10, 10, 0] }}
-              transition={{ duration: 0.4 }}
-              style={{
-                width: "34px", height: "34px",
-                background: "var(--color-primary)",
-                borderRadius: "10px",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "18px",
-              }}
+            <Link
+              to="/"
+              aria-label="Zomato Home"
+              style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}
             >
-              🍅
-            </motion.div>
-            <span style={{
-              fontSize: "1.375rem",
-              fontWeight: 800,
-              fontFamily: "var(--font-display)",
-              color: "var(--color-primary)",
-              letterSpacing: "-0.5px",
-            }}>
-              Zomato
-            </span>
-          </Link>
+              <span style={{
+                fontSize: "1.75rem",
+                fontWeight: 850,
+                fontFamily: "var(--font-display)",
+                color: "var(--color-primary)",
+                letterSpacing: "-1.5px",
+                textTransform: "lowercase",
+              }}>
+                zomato
+              </span>
+            </Link>
 
           {/* Location pill */}
           {isAuth && (
@@ -359,7 +349,7 @@ const Navbar = () => {
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1.25rem", color: "var(--color-primary)" }}>Zomato</span>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 850, fontSize: "1.5rem", color: "var(--color-primary)", letterSpacing: "-1px", textTransform: "lowercase" }}>zomato</span>
                 <button onClick={() => setMobileMenuOpen(false)} style={{ padding: "8px", cursor: "pointer", borderRadius: "var(--radius-md)", background: "var(--color-bg-secondary)" }}>
                   <BiX size={22} />
                 </button>

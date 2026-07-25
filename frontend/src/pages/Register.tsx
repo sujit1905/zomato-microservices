@@ -1,78 +1,67 @@
 import axios from "axios";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../main";
 import toast from "react-hot-toast";
-import { useGoogleLogin } from "@react-oauth/google";
-import { FcGoogle } from "react-icons/fc";
 import { useAppData } from "../context/AppContext";
 import { motion } from "framer-motion";
-import { BiEnvelope, BiLockAlt, BiHide, BiShow } from "react-icons/bi";
+import { BiHide, BiShow, BiLockAlt, BiEnvelope, BiUser } from "react-icons/bi";
 
-const Login = () => {
+const Register = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
   const { setUser, setIsAuth } = useAppData();
 
-  const responseGoogle = async (authResult: any) => {
-    if (!authResult || !authResult.code) {
-      console.error("Google Login did not return an authorization code:", authResult);
-      toast.error("Google login failed client-side");
-      return;
+  // Password validation: min 8 characters, at least one letter and one number
+  const validatePassword = (pass: string) => {
+    if (pass.length < 8) return "Password must be at least 8 characters long";
+    if (!/[A-Za-z]/.test(pass) || !/[0-9]/.test(pass)) {
+      return "Password must contain both letters and numbers";
     }
-    setLoading(true);
-    try {
-      const result = await axios.post(`${authService}/api/auth/login`, { code: authResult.code });
-      localStorage.setItem("token", result.data.token);
-      localStorage.setItem("rememberMe", "true");
-      toast.success(result.data.message);
-      setUser(result.data.user);
-      setIsAuth(true);
-      navigate("/");
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || "Problem while login";
-      toast.error(errorMsg);
-    } finally {
-      setLoading(false);
-    }
+    return "";
   };
 
-  const googleLogin = useGoogleLogin({
-    onSuccess: responseGoogle,
-    onError: () => toast.error("Google Login failed client-side"),
-    flow: "auth-code",
-  });
-
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
-      toast.error("Please enter email and password");
+    if (!name || !email || !password || !confirmPassword) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    const passError = validatePassword(password);
+    if (passError) {
+      toast.error(passError);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
       return;
     }
 
     setLoading(true);
     try {
-      const result = await axios.post(`${authService}/api/auth/login-email`, { email, password });
-      
-      localStorage.setItem("token", result.data.token);
-      if (rememberMe) {
-        localStorage.setItem("rememberMe", "true");
-      } else {
-        localStorage.setItem("rememberMe", "false");
-        sessionStorage.setItem("token", result.data.token);
-      }
+      const { data } = await axios.post(`${authService}/api/auth/register`, {
+        name,
+        email,
+        password,
+      });
 
-      toast.success("Welcome back!");
-      setUser(result.data.user);
+      localStorage.setItem("token", data.token);
+      toast.success("Account created successfully!");
+      setUser(data.user);
       setIsAuth(true);
-      navigate("/");
+      navigate("/select-role");
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || "Invalid email or password";
+      const errorMsg = error.response?.data?.message || "Registration failed";
       toast.error(errorMsg);
     } finally {
       setLoading(false);
@@ -103,7 +92,6 @@ const Login = () => {
         }}
         className="login-left-panel"
       >
-        {/* Decorative circles */}
         <div style={{
           position: "absolute", top: "-80px", right: "-80px",
           width: "320px", height: "320px", borderRadius: "50%",
@@ -153,12 +141,12 @@ const Login = () => {
               margin: "0 auto",
             }}
           >
-            Discover the best food & drinks in your city, delivered fast to your door.
+            Create an account to start ordering your favorite foods in seconds.
           </motion.p>
         </div>
       </motion.div>
 
-      {/* Right panel — login form */}
+      {/* Right panel — register form */}
       <motion.div
         initial={{ opacity: 0, x: 40 }}
         animate={{ opacity: 1, x: 0 }}
@@ -171,19 +159,39 @@ const Login = () => {
           background: "var(--color-bg)",
         }}
       >
-        <div style={{ width: "100%", maxWidth: "380px" }}>
+        <div style={{ width: "100%", maxWidth: "400px" }}>
           {/* Header */}
           <div style={{ marginBottom: "28px" }}>
             <h2 style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-dark)", marginBottom: "8px" }}>
-              Welcome back 👋
+              Get Started 🚀
             </h2>
             <p style={{ color: "var(--color-text-muted)", fontSize: "1rem" }}>
-              Sign in to order your favourite food
+              Create your new account today
             </p>
           </div>
 
-          {/* Email / Password Form */}
-          <form onSubmit={handleEmailLogin} style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
+          <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {/* Full Name */}
+            <div>
+              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "6px" }}>
+                Full Name
+              </label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)", display: "flex" }}>
+                  <BiUser size={18} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input-field"
+                  style={{ paddingLeft: "44px" }}
+                />
+              </div>
+            </div>
+
+            {/* Email Address */}
             <div>
               <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "6px" }}>
                 Email Address
@@ -194,35 +202,31 @@ const Login = () => {
                 </span>
                 <input
                   type="email"
-                  placeholder="name@example.com"
+                  placeholder="email@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="input-field"
-                  style={{ width: "100%", padding: "12px 12px 12px 44px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
+                  style={{ paddingLeft: "44px" }}
                 />
               </div>
             </div>
 
+            {/* Password */}
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                <label style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)" }}>
-                  Password
-                </label>
-                <Link to="/forgot-password" style={{ fontSize: "0.8125rem", color: "var(--color-primary)", fontWeight: 600 }}>
-                  Forgot Password?
-                </Link>
-              </div>
+              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "6px" }}>
+                Password
+              </label>
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)", display: "flex" }}>
                   <BiLockAlt size={18} />
                 </span>
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder="Min. 8 characters with numbers"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input-field"
-                  style={{ width: "100%", padding: "12px 44px 12px 44px", borderRadius: "8px", border: "1px solid var(--color-border)" }}
+                  style={{ paddingLeft: "44px", paddingRight: "44px" }}
                 />
                 <button
                   type="button"
@@ -238,18 +242,35 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Remember Me */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                style={{ accentColor: "var(--color-primary)", width: "16px", height: "16px", cursor: "pointer" }}
-              />
-              <label htmlFor="rememberMe" style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", cursor: "pointer", userSelect: "none" }}>
-                Remember Me
+            {/* Confirm Password */}
+            <div>
+              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "6px" }}>
+                Confirm Password
               </label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-light)", display: "flex" }}>
+                  <BiLockAlt size={18} />
+                </span>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="input-field"
+                  style={{ paddingLeft: "44px", paddingRight: "44px" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)",
+                    background: "none", border: "none", cursor: "pointer", color: "var(--color-text-light)",
+                    display: "flex", alignItems: "center"
+                  }}
+                >
+                  {showConfirmPassword ? <BiHide size={18} /> : <BiShow size={18} />}
+                </button>
+              </div>
             </div>
 
             <motion.button
@@ -258,73 +279,28 @@ const Login = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="btn btn-primary btn-block"
-              style={{ width: "100%", padding: "14px", background: "var(--color-primary)", color: "white", border: "none", borderRadius: "8px", fontWeight: 600, cursor: "pointer" }}
+              style={{ padding: "14px", marginTop: "8px" }}
             >
               {loading ? (
                 <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ margin: "0 auto" }}>
                   <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 60" strokeLinecap="round" />
                 </svg>
               ) : (
-                "Sign In"
+                "Create Account"
               )}
             </motion.button>
           </form>
 
-          {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", margin: "24px 0" }}>
-            <div style={{ flex: 1, height: "1px", background: "var(--color-border)" }} />
-            <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
-              or continue with
-            </span>
-            <div style={{ flex: 1, height: "1px", background: "var(--color-border)" }} />
-          </div>
-
-          {/* Google Login Button */}
-          <motion.button
-            onClick={() => googleLogin()}
-            disabled={loading}
-            whileHover={{ scale: 1.02, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
-            whileTap={{ scale: 0.98 }}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "12px",
-              padding: "14px 24px",
-              background: "#fff",
-              border: "1.5px solid var(--color-border)",
-              borderRadius: "8px",
-              fontSize: "1rem",
-              fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1,
-              marginBottom: "24px",
-            }}
-          >
-            <FcGoogle size={22} />
-            Google Account
-          </motion.button>
-
           {/* Toggle */}
-          <div style={{ textAlign: "center", fontSize: "0.9375rem", marginBottom: "28px" }}>
-            <span style={{ color: "var(--color-text-muted)" }}>New to Zomato? </span>
-            <Link to="/register" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
-              Create account
+          <div style={{ marginTop: "24px", textAlign: "center", fontSize: "0.9375rem" }}>
+            <span style={{ color: "var(--color-text-muted)" }}>Already have an account? </span>
+            <Link to="/login" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+              Sign In
             </Link>
           </div>
-
-          {/* T&C */}
-          <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", textAlign: "center", lineHeight: 1.6 }}>
-            By continuing, you agree to our{" "}
-            <span style={{ color: "var(--color-primary)", fontWeight: 500, cursor: "pointer" }}>Terms of Service</span>
-            {" & "}
-            <span style={{ color: "var(--color-primary)", fontWeight: 500, cursor: "pointer" }}>Privacy Policy</span>
-          </p>
         </div>
       </motion.div>
 
-      {/* Responsive: hide left panel on small screens */}
       <style>{`
         @media (max-width: 768px) {
           .login-left-panel { display: none !important; }
@@ -335,4 +311,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

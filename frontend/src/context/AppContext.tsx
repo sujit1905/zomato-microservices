@@ -66,6 +66,13 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   }
 
   useEffect(() => {
+    const sessionToken = sessionStorage.getItem("token");
+    const localToken = localStorage.getItem("token");
+    const rememberMe = localStorage.getItem("rememberMe") === "true";
+
+    if (localToken && !rememberMe && !sessionToken) {
+      localStorage.removeItem("token");
+    }
     fetchUser();
   }, []);
 

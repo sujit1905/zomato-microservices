@@ -6,7 +6,7 @@ import { riderService } from "../main";
 import toast from "react-hot-toast";
 import { BiUpload, BiUser, BiPhone, BiBell } from "react-icons/bi";
 import type { IOrder } from "../types";
-import audio from "../assets/faaah.mp3";
+import audio from "../assets/quack.mp3";
 import RiderOrderRequest from "../components/RiderOrderRequest";
 import RiderCurrentOrder from "../components/RiderCurrentOrder";
 import RiderOrderMap from "../components/RiderOrderMap";
@@ -70,7 +70,7 @@ const RiderDashboard = () => {
 
       if (audioUnlocked && audioRef.current) {
         audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(() => {});
+        audioRef.current.play().catch(() => { });
       }
 
       setTimeout(() => {
@@ -313,15 +313,15 @@ const RiderDashboard = () => {
   return (
     <div style={{ background: "var(--color-bg-secondary)", minHeight: "100vh", padding: "32px 0 64px" }}>
       <div className="container" style={{ maxWidth: "520px" }}>
-        
+
         {/* Rider Profile Card */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           style={{ background: "#fff", borderRadius: "var(--radius-2xl)", boxShadow: "0 10px 40px rgba(0,0,0,0.06)", overflow: "hidden", marginBottom: "24px", border: "1px solid var(--color-border-light)" }}>
-          
+
           <div style={{ height: "120px", background: "url('https://images.unsplash.com/photo-1615810220461-197e93098e98?q=80&w=1000&auto=format&fit=crop') center/cover", position: "relative" }}>
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.6))" }} />
           </div>
-          
+
           <div style={{ padding: "0 28px 28px", marginTop: "-54px", textAlign: "center", position: "relative", zIndex: 1 }}>
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 180, delay: 0.1 }}
               style={{ width: "108px", height: "108px", borderRadius: "50%", border: "5px solid #fff", overflow: "hidden", margin: "0 auto 16px", background: "#F3F4F6", boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}>
