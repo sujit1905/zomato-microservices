@@ -93,23 +93,25 @@ const RestaurantCard = ({ id, image, name, distance, isOpen }: props) => {
           </div>
         )}
 
-        {/* Favorite Button */}
-        <button
-          onClick={toggleFavorite}
-          style={{
-            position: "absolute", top: "10px", left: "10px", zIndex: 2,
-            background: "rgba(255, 255, 255, 0.9)", border: "none",
-            borderRadius: "50%", width: "32px", height: "32px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", boxShadow: "var(--shadow-sm)",
-            color: isFavorite ? "var(--color-primary)" : "var(--color-text-light)",
-            transition: "all var(--transition-fast)",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.1)")}
-          onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
-        >
-          {isFavorite ? "❤️" : "🤍"}
-        </button>
+          {/* Favorite Button */}
+          <button
+            onClick={toggleFavorite}
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            style={{
+              position: "absolute", top: "10px", left: "10px", zIndex: 2,
+              background: "rgba(255, 255, 255, 0.92)", border: "none",
+              borderRadius: "50%", width: "34px", height: "34px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              transition: "all var(--transition-fast)",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.12)")}
+            onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorite ? "#E23744" : "none"} stroke={isFavorite ? "#E23744" : "#9CA3AF"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
 
         {/* Discount Badge */}
         {isOpen && (
@@ -128,32 +130,41 @@ const RestaurantCard = ({ id, image, name, distance, isOpen }: props) => {
           </div>
         )}
 
-        {/* Veg/Non-veg Dot Indicator */}
+        {/* Veg/Non-veg Indicator */}
         <div style={{ position: "absolute", top: "10px", right: "10px", zIndex: 2, display: "flex", gap: "6px", alignItems: "center" }}>
           <span style={{
-            background: "rgba(255,255,255,0.9)",
-            border: `1px solid ${isVeg ? "#16A34A" : "#EF4444"}`,
-            padding: "2px 6px",
+            display: "inline-flex", alignItems: "center", gap: "4px",
+            background: "rgba(255,255,255,0.92)",
+            border: `1.5px solid ${isVeg ? "#16A34A" : "#EF4444"}`,
+            padding: "2px 7px 2px 4px",
             borderRadius: "4px",
-            fontSize: "0.625rem",
+            fontSize: "0.65rem",
             fontWeight: 700,
             color: isVeg ? "#16A34A" : "#EF4444",
           }}>
-            {isVeg ? "🟢 VEG" : "🔴 NON-VEG"}
+            <span style={{
+              width: "8px", height: "8px", borderRadius: "50%",
+              background: isVeg ? "#16A34A" : "#EF4444",
+              flexShrink: 0,
+              display: "inline-block",
+            }} />
+            {isVeg ? "VEG" : "NON-VEG"}
           </span>
         </div>
 
         {/* Distance badge */}
         <div style={{ position: "absolute", bottom: "10px", left: "10px", zIndex: 2 }}>
           <span style={{
-            background: "rgba(0,0,0,0.7)",
+            display: "inline-flex", alignItems: "center", gap: "4px",
+            background: "rgba(0,0,0,0.65)",
             color: "#fff",
             fontWeight: 600,
             fontSize: "0.75rem",
             padding: "4px 10px",
             borderRadius: "var(--radius-full)",
           }}>
-            📍 {Number(distance).toFixed(1)} km
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#E23744"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+            {distance === "N/A" ? "N/A" : `${Number(distance).toFixed(1)} km`}
           </span>
         </div>
       </div>
@@ -204,8 +215,9 @@ const RestaurantCard = ({ id, image, name, distance, isOpen }: props) => {
           <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
             ₹{priceForTwo} for two
           </span>
-          <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", fontWeight: 600 }}>
-            ⏱️ {deliveryTime}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.8125rem", color: "var(--color-text-muted)", fontWeight: 600 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {deliveryTime}
           </span>
         </div>
       </div>
